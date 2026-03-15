@@ -11,7 +11,7 @@ const formatDuration = (ms: number): string => {
 };
 
 export const Dashboard: React.FC = () => {
-  const { schedule, settings, crew, navigateTo } = useApp();
+  const { schedule, settings, effectiveOffset, crew, navigateTo } = useApp();
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -72,9 +72,9 @@ export const Dashboard: React.FC = () => {
         <div className="relative z-10">
           <p className="text-blue-100 text-sm font-medium uppercase tracking-wider mb-1">Ship Time</p>
           <h1 className="text-5xl font-bold font-mono tracking-tighter">
-            {formatTime(now, settings.shipTimeOffset)}
+            {formatTime(now, effectiveOffset, settings.use24Hour)}
           </h1>
-          <p className="text-blue-200 text-xs mt-2">UTC {settings.shipTimeOffset >= 0 ? '+' : ''}{settings.shipTimeOffset} offset</p>
+          <p className="text-blue-200 text-xs mt-2">UTC {effectiveOffset >= 0 ? '+' : ''}{effectiveOffset} offset</p>
         </div>
       </div>
 
@@ -97,7 +97,7 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-mono font-medium text-slate-700 dark:text-slate-300">
-                    {formatTime(currentShift.startTime, settings.shipTimeOffset)} - {formatTime(currentShift.endTime, settings.shipTimeOffset)}
+                    {formatTime(currentShift.startTime, effectiveOffset, settings.use24Hour)} - {formatTime(currentShift.endTime, effectiveOffset, settings.use24Hour)}
                   </p>
                 </div>
               </div>
@@ -141,7 +141,7 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
              <div className="text-right font-mono text-slate-600 dark:text-slate-400 text-sm">
-                {formatTime(nextShift.startTime, settings.shipTimeOffset)}
+                {formatTime(nextShift.startTime, effectiveOffset, settings.use24Hour)}
             </div>
           </div>
         ) : (
@@ -178,7 +178,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="font-mono text-xs text-gray-500 dark:text-gray-400">
-                  {formatTime(shift.startTime, settings.shipTimeOffset)} - {formatTime(shift.endTime, settings.shipTimeOffset)}
+                  {formatTime(shift.startTime, effectiveOffset, settings.use24Hour)} - {formatTime(shift.endTime, effectiveOffset, settings.use24Hour)}
                 </div>
               </div>
             );

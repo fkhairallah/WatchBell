@@ -27,6 +27,7 @@ interface AppContextType {
 
   settings: AppSettings;
   updateSettings: (updates: Partial<AppSettings>) => void;
+  effectiveOffset: number;
 
   schedule: WatchShift[];
   refreshSchedule: () => void;
@@ -72,6 +73,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   nightVision: false,
   autoNightVision: false,
   shipTimeOffset: 0,
+  usePhoneTime: true,
+  use24Hour: true,
 };
 
 /** Migrate old flat WatchConfig to the new nested format. */
@@ -129,7 +132,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => { saveToStorage('wm_crew', crew); refreshSchedule(); }, [crew]);
   useEffect(() => { saveToStorage('wm_config', config); refreshSchedule(); }, [config]);
-  useEffect(() => { refreshSchedule(); }, [settings.shipTimeOffset]);
+  useEffect(() => { refreshSchedule(); }, [settings.shipTimeOffset, settings.usePhoneTime]);
 
   useEffect(() => {
     saveToStorage('wm_settings', settings);
@@ -166,7 +169,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return clearAuto;
   }, [settings.autoNightVision]);
 
-  const refreshSchedule = () => setSchedule(generateSchedule(crew, config, 7, settings.shipTimeOffset));
+  const effectiveOffset = settings.usePhoneTime
+    ? -new Date().getTimezoneOffset() / 60
+    : settings.shipTimeOffset;
+
+  const refreshSchedule = () =>
+    setSchedule(generateSchedule(crew, config, 7,
+      settings.usePhoneTime ? -new Date().getTimezoneOffset() / 60 : settings.shipTimeOffset
+    ));
 
   // ── Crew ──────────────────────────────────────────────────────────────────
 
@@ -248,7 +258,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       config, updateConfig, setScheduleMode,
       updateStandardConfig, updateDayNightConfig,
       addCustomSlot, removeCustomSlot, updateCustomSlot, reorderCustomSlots, autoFillCustomSlots,
-      settings, updateSettings,
+      settings, updateSettings, effectiveOffset,
       schedule, refreshSchedule,
       currentRoute, navigateTo,
     }}>

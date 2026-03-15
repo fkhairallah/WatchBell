@@ -45,6 +45,8 @@ export interface AppSettings {
   nightVision: boolean;
   autoNightVision: boolean;
   shipTimeOffset: number;
+  usePhoneTime: boolean;
+  use24Hour: boolean;
 }
 
 export interface WatchShift {

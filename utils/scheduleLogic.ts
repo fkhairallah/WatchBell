@@ -2,22 +2,20 @@ import { CrewMember, WatchConfig, WatchShift, RotationStatus, DayNightConfig } f
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Returns the hour (0–23) at the given UTC timestamp in ship time. */
+/** Returns the hour (0–23) at the given timestamp in ship time. */
 const getShipHour = (ms: number, offsetHours: number): number =>
-  new Date(ms + offsetHours * 3_600_000).getUTCHours();
+  new Date(ms + offsetHours * 3_600_000).getHours();
 
 /**
- * Returns the next UTC timestamp at which ship time will be exactly
+ * Returns the next timestamp at which ship time will be exactly
  * `boundaryHour:00:00`. Always returns a value strictly greater than `ms`.
  */
 const nextShipHourBoundary = (ms: number, offsetHours: number, boundaryHour: number): number => {
-  // Express current time in ship-time epoch ms (treating ship tz as UTC)
-  const shipMs = ms + offsetHours * 3_600_000;
-  const startOfShipDay = Math.floor(shipMs / 86_400_000) * 86_400_000;
-  let boundaryShip = startOfShipDay + boundaryHour * 3_600_000;
-  if (boundaryShip <= shipMs) boundaryShip += 86_400_000;
-  // Convert back to UTC ms
-  return boundaryShip - offsetHours * 3_600_000;
+  const shipDate = new Date(ms + offsetHours * 3_600_000);
+  const boundary = new Date(shipDate);
+  boundary.setHours(boundaryHour, 0, 0, 0);
+  if (boundary.getTime() <= shipDate.getTime()) boundary.setDate(boundary.getDate() + 1);
+  return boundary.getTime() - offsetHours * 3_600_000;
 };
 
 const parseStartDateTime = (config: WatchConfig): Date => {
@@ -222,13 +220,13 @@ export const checkRotationQuality = (crewCount: number, watchLengthHours: number
   return RotationStatus.GOOD;
 };
 
-export const formatTime = (timestamp: number, offsetHours: number = 0): string => {
+export const formatTime = (timestamp: number, offsetHours: number = 0, use24Hour: boolean = true): string => {
   if (!timestamp || isNaN(timestamp)) return '--:--';
   const safeOffset = typeof offsetHours === 'number' && !isNaN(offsetHours) ? offsetHours : 0;
   try {
     const date = new Date(timestamp + safeOffset * 3_600_000);
     if (isNaN(date.getTime())) return '--:--';
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !use24Hour, timeZone: 'UTC' });
   } catch {
     return '--:--';
   }

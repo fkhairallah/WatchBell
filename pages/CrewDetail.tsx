@@ -9,7 +9,7 @@ const DAY_OPTIONS = [1, 2, 3] as const;
 type DayOption = typeof DAY_OPTIONS[number];
 
 export const CrewDetail: React.FC = () => {
-  const { crew, schedule, settings, currentRoute, navigateTo } = useApp();
+  const { crew, schedule, settings, effectiveOffset, currentRoute, navigateTo } = useApp();
 
   const id = currentRoute.split('/').pop();
   const member = crew.find(c => c.id === id);
@@ -24,7 +24,7 @@ export const CrewDetail: React.FC = () => {
   useEffect(() => {
     if (!showQR || !canvasRef.current || !member) return;
     setQrError(false);
-    const icsText = generateICS(member, memberShifts, settings, qrDays);
+    const icsText = generateICS(member, memberShifts, effectiveOffset, qrDays);
     QRCode.toCanvas(canvasRef.current, icsText, { width: 260, margin: 2, errorCorrectionLevel: 'M' }, (err) => {
       if (err) setQrError(true);
     });
@@ -42,8 +42,8 @@ export const CrewDetail: React.FC = () => {
   // Group by day for nicer display
   const shiftsByDay: Record<string, typeof memberShifts> = {};
   memberShifts.forEach(shift => {
-    const date = new Date(shift.startTime + (settings.shipTimeOffset * 3600000));
-    const dayKey = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const date = new Date(shift.startTime + (effectiveOffset * 3600000));
+    const dayKey = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
     if (!shiftsByDay[dayKey]) shiftsByDay[dayKey] = [];
     shiftsByDay[dayKey].push(shift);
   });
@@ -51,7 +51,7 @@ export const CrewDetail: React.FC = () => {
   const upcomingCount = memberShifts.filter(s => s.endTime >= Date.now() && s.startTime <= Date.now() + qrDays * 24 * 3600 * 1000).length;
 
   const downloadICS = () => {
-    const icsText = generateICS(member!, memberShifts, settings, qrDays);
+    const icsText = generateICS(member!, memberShifts, effectiveOffset, qrDays);
     const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -112,7 +112,7 @@ export const CrewDetail: React.FC = () => {
                       </div>
                       <div>
                         <span className="font-mono text-lg font-semibold">
-                          {formatTime(shift.startTime, settings.shipTimeOffset)} - {formatTime(shift.endTime, settings.shipTimeOffset)}
+                          {formatTime(shift.startTime, effectiveOffset, settings.use24Hour)} - {formatTime(shift.endTime, effectiveOffset, settings.use24Hour)}
                         </span>
                         {shift.isCaptainsHour && (
                           <div className="text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase mt-0.5">Captain's Hour</div>

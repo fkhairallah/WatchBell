@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.watchmaker.app',
+  appId: 'com.deligent.watchmaker',
   appName: 'WatchMaker',
   webDir: 'dist',
   server: {

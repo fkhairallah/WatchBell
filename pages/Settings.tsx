@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Moon, Sun, Eye, Clock, RotateCcw, Sunset } from 'lucide-react';
+import { Moon, Sun, Eye, Clock, RotateCcw, Sunset, Smartphone } from 'lucide-react';
 import { version } from '../package.json';
 
 export const SettingsPage: React.FC = () => {
@@ -95,27 +95,80 @@ export const SettingsPage: React.FC = () => {
       {/* Ship Time */}
       <section className="space-y-4">
         <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Time & Location</h2>
-        <div className="bg-white dark:bg-slate-700 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-600 space-y-4">
-            <div className="flex items-center space-x-2 mb-2">
-                <Clock className="w-5 h-5 text-blue-500" />
-                <h3 className="font-semibold text-slate-800 dark:text-white">Ship Time Offset</h3>
+        <div className="bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-gray-200 dark:border-slate-600 divide-y divide-gray-100 dark:divide-slate-600">
+
+          {/* Use phone time toggle */}
+          <div className="flex items-center justify-between p-5">
+            <div className="flex items-center space-x-4">
+              <div className={`p-3 rounded-full ${settings.usePhoneTime ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}>
+                <Smartphone className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800 dark:text-white">Sync to Phone Time</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {settings.usePhoneTime
+                    ? `Using device timezone (UTC${(() => { const o = -new Date().getTimezoneOffset() / 60; return (o >= 0 ? '+' : '') + o; })()})`
+                    : 'Use manual Zulu offset below.'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => updateSettings({ usePhoneTime: !settings.usePhoneTime })}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${settings.usePhoneTime ? 'bg-blue-500' : 'bg-gray-200 dark:bg-slate-600'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.usePhoneTime ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          {/* 12 / 24-hour clock */}
+          <div className="flex items-center justify-between p-5">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 rounded-full bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800 dark:text-white">Clock Format</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">How times are displayed throughout the app.</p>
+              </div>
+            </div>
+            <div className="bg-gray-100 dark:bg-slate-600 rounded-lg p-1 flex">
+              <button
+                onClick={() => updateSettings({ use24Hour: true })}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${settings.use24Hour ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'text-gray-500 dark:text-gray-400'}`}
+              >24h</button>
+              <button
+                onClick={() => updateSettings({ use24Hour: false })}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${!settings.use24Hour ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'text-gray-500 dark:text-gray-400'}`}
+              >12h</button>
+            </div>
+          </div>
+
+          {/* Manual offset */}
+          <div className={`p-6 space-y-4 ${settings.usePhoneTime ? 'opacity-40 pointer-events-none' : ''}`}>
+            <div className="flex items-center space-x-2">
+              <Clock className="w-5 h-5 text-blue-500" />
+              <h3 className="font-semibold text-slate-800 dark:text-white">Manual Zulu Offset</h3>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-                Adjust the ship's clock relative to UTC/System time as you cross timezones.
+              Adjust the ship's clock relative to UTC as you cross timezones.
             </p>
             <div className="flex items-center space-x-4">
-                <button 
-                    onClick={() => updateSettings({ shipTimeOffset: settings.shipTimeOffset - 1 })}
-                    className="w-10 h-10 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center font-bold text-lg hover:bg-gray-200 dark:hover:bg-slate-600"
-                >-</button>
-                <div className="flex-1 text-center font-mono text-xl font-medium dark:text-white">
-                    {settings.shipTimeOffset > 0 ? '+' : ''}{settings.shipTimeOffset} Hrs
-                </div>
-                <button 
-                     onClick={() => updateSettings({ shipTimeOffset: settings.shipTimeOffset + 1 })}
-                    className="w-10 h-10 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center font-bold text-lg hover:bg-gray-200 dark:hover:bg-slate-600"
-                >+</button>
+              <button
+                onClick={() => updateSettings({ shipTimeOffset: settings.shipTimeOffset - 1 })}
+                className="w-10 h-10 rounded-full bg-gray-100 dark:bg-slate-600 flex items-center justify-center font-bold text-lg hover:bg-gray-200 dark:hover:bg-slate-500"
+              >-</button>
+              <div className="flex-1 text-center font-mono text-xl font-medium dark:text-white">
+                {settings.shipTimeOffset > 0 ? '+' : ''}{settings.shipTimeOffset} Hrs
+              </div>
+              <button
+                onClick={() => updateSettings({ shipTimeOffset: settings.shipTimeOffset + 1 })}
+                className="w-10 h-10 rounded-full bg-gray-100 dark:bg-slate-600 flex items-center justify-center font-bold text-lg hover:bg-gray-200 dark:hover:bg-slate-500"
+              >+</button>
             </div>
+          </div>
+
         </div>
       </section>
 

@@ -1,4 +1,4 @@
-import { WatchShift, CrewMember, AppSettings } from '../types';
+import { WatchShift, CrewMember } from '../types';
 
 function toICSDate(timestampMs: number, offsetHours: number): string {
   // Apply ship time offset then format as local floating time (no Z suffix)
@@ -13,7 +13,7 @@ function toICSDate(timestampMs: number, offsetHours: number): string {
 export function generateICS(
   member: CrewMember,
   shifts: WatchShift[],
-  settings: AppSettings,
+  offsetHours: number,
   days: number
 ): string {
   const now = Date.now();
@@ -27,8 +27,8 @@ export function generateICS(
       : `${member.name} – Watch`;
     return [
       'BEGIN:VEVENT',
-      `DTSTART:${toICSDate(shift.startTime, settings.shipTimeOffset)}`,
-      `DTEND:${toICSDate(shift.endTime, settings.shipTimeOffset)}`,
+      `DTSTART:${toICSDate(shift.startTime, offsetHours)}`,
+      `DTEND:${toICSDate(shift.endTime, offsetHours)}`,
       `SUMMARY:${summary}`,
       `UID:wm-${shift.id}@watchmaker`,
       'END:VEVENT',

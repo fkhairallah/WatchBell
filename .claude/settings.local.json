@@ -5,7 +5,10 @@
       "mcp__ide__getDiagnostics",
       "Bash(npm install:*)",
       "Bash(npm list:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npx cap:*)",
+      "Bash(python3:*)",
+      "Bash(node:*)"
     ]
   }
 }
