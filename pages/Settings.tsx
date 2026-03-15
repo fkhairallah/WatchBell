@@ -1,7 +1,9 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Moon, Sun, Eye, Clock, RotateCcw, Sunset, Smartphone } from 'lucide-react';
+import { Moon, Sun, Eye, Clock, RotateCcw, Sunset, Smartphone, Coffee } from 'lucide-react';
 import { version } from '../package.json';
+
+const BMC_URL = 'https://www.buymeacoffee.com/fadyk';
 
 export const SettingsPage: React.FC = () => {
   const { settings, updateSettings } = useApp();
@@ -172,10 +174,27 @@ export const SettingsPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Support */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Support</h2>
+        <button
+          onClick={() => window.open(BMC_URL, '_blank', 'noopener,noreferrer')}
+          className="w-full flex items-center space-x-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-5 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors text-left"
+        >
+          <div className="p-3 bg-yellow-100 dark:bg-yellow-900/40 rounded-full text-yellow-500 flex-shrink-0">
+            <Coffee className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-slate-800 dark:text-white">Buy me a coffee — $5</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Solo dev, no ads. Your support keeps this going.</p>
+          </div>
+        </button>
+      </section>
+
       {/* Danger Zone */}
        <section className="pt-6 border-t border-gray-200 dark:border-slate-800">
         <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">WatchMaker v{version}</p>
-        <button 
+        <button
             onClick={handleReset}
             className="flex items-center space-x-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition-colors"
         >

@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
@@ -6,6 +6,9 @@ import { CrewManagement } from './pages/CrewManagement';
 import { WatchConfiguration } from './pages/WatchConfiguration';
 import { CrewDetail } from './pages/CrewDetail';
 import { SettingsPage } from './pages/Settings';
+import { SupportModal } from './components/SupportModal';
+
+const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -64,15 +67,35 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
 const MainContent = () => {
   const { currentRoute } = useApp();
+  const [showSupport, setShowSupport] = useState(false);
 
-  if (currentRoute === '/') return <Dashboard />;
-  if (currentRoute === '/crew') return <CrewManagement />;
-  if (currentRoute.startsWith('/crew/')) return <CrewDetail />;
-  if (currentRoute === '/config') return <WatchConfiguration />;
-  if (currentRoute === '/settings') return <SettingsPage />;
-  
-  // Default fallback
-  return <Dashboard />;
+  useEffect(() => {
+    // Record first use
+    const firstUsed = localStorage.getItem('wm_first_used');
+    if (!firstUsed) {
+      localStorage.setItem('wm_first_used', String(Date.now()));
+      return;
+    }
+    // Show modal once, 2 weeks after first use
+    const shown = localStorage.getItem('wm_support_shown');
+    if (!shown && Date.now() - Number(firstUsed) >= TWO_WEEKS_MS) {
+      setShowSupport(true);
+    }
+  }, []);
+
+  const handleClose = () => {
+    localStorage.setItem('wm_support_shown', '1');
+    setShowSupport(false);
+  };
+
+  let page: React.ReactNode;
+  if (currentRoute === '/crew') page = <CrewManagement />;
+  else if (currentRoute.startsWith('/crew/')) page = <CrewDetail />;
+  else if (currentRoute === '/config') page = <WatchConfiguration />;
+  else if (currentRoute === '/settings') page = <SettingsPage />;
+  else page = <Dashboard />;
+
+  return <>{page}{showSupport && <SupportModal onClose={handleClose} />}</>;
 };
 
 const App: React.FC = () => {
