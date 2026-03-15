@@ -27,13 +27,22 @@ export const CrewManagement: React.FC = () => {
   const onDragMove = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (dragIndex === null) return;
     const y = e.clientY;
-    let target = 0;
+    let target = dragIndex;
     itemRefs.current.forEach((ref, i) => {
       if (!ref) return;
       const { top, height } = ref.getBoundingClientRect();
       if (y > top + height / 2) target = i + 1;
     });
     setDropIndex(Math.min(target, crew.length - 1));
+  };
+
+  const getItemTransform = (index: number): string => {
+    if (dragIndex === null || dropIndex === null || dragIndex === dropIndex || index === dragIndex) return '';
+    const ref = itemRefs.current[dragIndex];
+    const shift = (ref ? ref.getBoundingClientRect().height : 64) + 12; // 12px = space-y-3
+    if (dragIndex < dropIndex && index > dragIndex && index <= dropIndex) return `translateY(-${shift}px)`;
+    if (dragIndex > dropIndex && index >= dropIndex && index < dragIndex) return `translateY(${shift}px)`;
+    return '';
   };
 
   const onDragEnd = () => {
@@ -75,17 +84,23 @@ export const CrewManagement: React.FC = () => {
 
       <div className="space-y-3">
         {crew.map((member, index) => (
-          <div
-            key={member.id}
-            ref={el => { itemRefs.current[index] = el; }}
-            className={`bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border transition-all flex items-center justify-between ${
-              dragIndex === index
-                ? 'opacity-40 scale-[0.98] border-gray-200 dark:border-slate-600'
-                : dropIndex === index && dragIndex !== null && dragIndex !== index
-                ? 'border-blue-400 dark:border-blue-500'
-                : 'border-gray-200 dark:border-slate-600'
-            }`}
-          >
+          <React.Fragment key={member.id}>
+            {dragIndex !== null && dropIndex !== null && dragIndex !== dropIndex && dropIndex === index && index <= dragIndex && (
+              <div className="h-0.5 bg-red-500 rounded-full -mb-1.5 mx-1 transition-opacity duration-150" />
+            )}
+            <div
+              ref={el => { itemRefs.current[index] = el; }}
+              className={`bg-white dark:bg-slate-700 p-4 rounded-xl shadow-sm border flex items-center justify-between ${
+                dragIndex === index
+                  ? 'opacity-30 scale-[0.97] border-gray-200 dark:border-slate-600'
+                  : 'border-gray-200 dark:border-slate-600'
+              }`}
+              style={{
+                transform: getItemTransform(index),
+                transition: dragIndex !== null ? 'transform 180ms ease, opacity 180ms ease' : 'transform 250ms ease',
+                zIndex: dragIndex === index ? 0 : 1,
+              }}
+            >
             <div className="flex items-center space-x-4">
               <button
                 onPointerDown={(e) => onDragStart(e, index)}
@@ -119,7 +134,11 @@ export const CrewManagement: React.FC = () => {
             >
               <Trash2 className="w-5 h-5" />
             </button>
-          </div>
+            </div>
+            {dragIndex !== null && dropIndex !== null && dragIndex !== dropIndex && dropIndex === index && index >= dragIndex && (
+              <div className="h-0.5 bg-red-500 rounded-full -mt-1.5 mx-1 transition-opacity duration-150" />
+            )}
+          </React.Fragment>
         ))}
 
         {crew.length === 0 && (

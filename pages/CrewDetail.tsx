@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import QRCode from 'qrcode';
 import { useApp } from '../context/AppContext';
 import { formatTime } from '../utils/scheduleLogic';
@@ -61,8 +62,20 @@ export const CrewDetail: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const floatingBtn = ReactDOM.createPortal(
+    <button
+      onClick={() => setShowQR(true)}
+      className="fixed top-16 right-4 z-40 flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-lg"
+    >
+      <QrCode className="w-4 h-4" />
+      Share via QR
+    </button>,
+    document.body
+  );
+
   return (
     <div className="space-y-6 animate-fade-in">
+      {floatingBtn}
       <button
         onClick={() => navigateTo('/crew')}
         className="flex items-center text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
@@ -70,18 +83,9 @@ export const CrewDetail: React.FC = () => {
         <ArrowLeft className="w-4 h-4 mr-1" /> Back
       </button>
 
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">{member.name}</h1>
-          <p className="text-gray-500 dark:text-gray-400">Personal Watch Schedule</p>
-        </div>
-        <button
-          onClick={() => setShowQR(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow"
-        >
-          <QrCode className="w-4 h-4" />
-          Share via QR
-        </button>
+      <div>
+        <h1 className="text-3xl font-bold text-slate-800 dark:text-white">{member.name}</h1>
+        <p className="text-gray-500 dark:text-gray-400">Personal Watch Schedule</p>
       </div>
 
       <div className="space-y-6">
