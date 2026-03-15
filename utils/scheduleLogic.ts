@@ -1,116 +1,235 @@
-import { CrewMember, WatchConfig, WatchShift, RotationStatus } from '../types';
+import { CrewMember, WatchConfig, WatchShift, RotationStatus, DayNightConfig } from '../types';
 
-export const generateSchedule = (
-  crew: CrewMember[],
-  config: WatchConfig,
-  daysToGenerate: number = 7
-): WatchShift[] => {
-  if (crew.length === 0) return [];
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-  const activeCrew = crew.filter(c => c.isActive);
-  if (activeCrew.length === 0) return [];
+/** Returns the hour (0–23) at the given UTC timestamp in ship time. */
+const getShipHour = (ms: number, offsetHours: number): number =>
+  new Date(ms + offsetHours * 3_600_000).getUTCHours();
 
-  const shifts: WatchShift[] = [];
-  
-  // Safe date parsing
-  let startDateTime: Date;
+/**
+ * Returns the next UTC timestamp at which ship time will be exactly
+ * `boundaryHour:00:00`. Always returns a value strictly greater than `ms`.
+ */
+const nextShipHourBoundary = (ms: number, offsetHours: number, boundaryHour: number): number => {
+  // Express current time in ship-time epoch ms (treating ship tz as UTC)
+  const shipMs = ms + offsetHours * 3_600_000;
+  const startOfShipDay = Math.floor(shipMs / 86_400_000) * 86_400_000;
+  let boundaryShip = startOfShipDay + boundaryHour * 3_600_000;
+  if (boundaryShip <= shipMs) boundaryShip += 86_400_000;
+  // Convert back to UTC ms
+  return boundaryShip - offsetHours * 3_600_000;
+};
+
+const parseStartDateTime = (config: WatchConfig): Date => {
+  let dt: Date;
   try {
-    startDateTime = new Date(config.startDate);
-    if (isNaN(startDateTime.getTime())) throw new Error("Invalid date");
-  } catch (e) {
-    startDateTime = new Date();
+    dt = new Date(config.startDate);
+    if (isNaN(dt.getTime())) throw new Error();
+  } catch {
+    dt = new Date();
   }
 
-  // Safe time parsing
-  let startHour = 8, startMinute = 0;
-  if (config.startTime && config.startTime.includes(':')) {
-    const parts = config.startTime.split(':').map(Number);
-    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-        startHour = parts[0];
-        startMinute = parts[1];
-    }
+  let h = 8, m = 0;
+  if (config.startTime?.includes(':')) {
+    const [ph, pm] = config.startTime.split(':').map(Number);
+    if (!isNaN(ph) && !isNaN(pm)) { h = ph; m = pm; }
   }
 
-  let currentCrewIndex = 0;
-  startDateTime.setHours(startHour, startMinute, 0, 0);
+  dt.setHours(h, m, 0, 0);
+  return dt;
+};
 
+// ─── Mode: Standard ───────────────────────────────────────────────────────────
+
+const generateStandard = (
+  activeCrew: CrewMember[],
+  config: WatchConfig,
+  startDateTime: Date,
+  endTime: number,
+  shipTimeOffsetHours: number = 0
+): WatchShift[] => {
+  const { standard } = config;
+  const minDuration = Math.max(0.5, standard.watchDurationHours || 3);
+  const shifts: WatchShift[] = [];
   let currentTime = startDateTime.getTime();
-  const endTime = currentTime + (daysToGenerate * 24 * 60 * 60 * 1000);
-
-  // Prevent infinite loops if duration is 0
-  const minDuration = Math.max(0.5, config.watchDurationHours || 3);
+  let crewIndex = 0;
 
   while (currentTime < endTime) {
-    const currentDate = new Date(currentTime);
-    const currentHour = currentDate.getHours();
-
-    // Check for Captain's Hour
+    const currentHour = getShipHour(currentTime, shipTimeOffsetHours);
     let isCaptainsHour = false;
     let durationHours = minDuration;
 
-    if (config.captainsHourEnabled) {
-      if (currentHour === config.captainsHourStart) {
+    if (standard.captainsHourEnabled) {
+      if (currentHour === standard.captainsHourStart) {
         isCaptainsHour = true;
         durationHours = 1;
       } else {
-        // Calculate time until next captain's hour
-        const nextCaptainsHour = new Date(currentDate);
-        nextCaptainsHour.setHours(config.captainsHourStart, 0, 0, 0);
-        if (nextCaptainsHour.getTime() <= currentTime) {
-            nextCaptainsHour.setDate(nextCaptainsHour.getDate() + 1);
-        }
-        
-        const hoursUntilCaptains = (nextCaptainsHour.getTime() - currentTime) / (1000 * 60 * 60);
-        
-        // Shorten watch if it overlaps into captain's hour
-        if (hoursUntilCaptains < durationHours && hoursUntilCaptains > 0.01) {
-            durationHours = hoursUntilCaptains;
-        }
+        const next = nextShipHourBoundary(currentTime, shipTimeOffsetHours, standard.captainsHourStart);
+        const hoursUntil = (next - currentTime) / 3_600_000;
+        if (hoursUntil < durationHours && hoursUntil > 0.01) durationHours = hoursUntil;
       }
     }
 
-    const shiftEndTime = currentTime + (durationHours * 60 * 60 * 1000);
-    
+    const shiftEnd = currentTime + durationHours * 3_600_000;
     shifts.push({
       id: `shift-${currentTime}`,
       startTime: currentTime,
-      endTime: shiftEndTime,
-      crewMemberIds: isCaptainsHour ? activeCrew.map(c => c.id) : [activeCrew[currentCrewIndex].id],
-      isCaptainsHour
+      endTime: shiftEnd,
+      crewMemberIds: isCaptainsHour ? activeCrew.map(c => c.id) : [activeCrew[crewIndex].id],
+      isCaptainsHour,
     });
-
-    currentTime = shiftEndTime;
-
-    if (!isCaptainsHour) {
-      currentCrewIndex = (currentCrewIndex + 1) % activeCrew.length;
-    }
+    currentTime = shiftEnd;
+    if (!isCaptainsHour) crewIndex = (crewIndex + 1) % activeCrew.length;
   }
 
   return shifts;
 };
 
+// ─── Mode: Day/Night ──────────────────────────────────────────────────────────
+
+const generateDayNight = (
+  activeCrew: CrewMember[],
+  config: WatchConfig,
+  startDateTime: Date,
+  endTime: number,
+  shipTimeOffsetHours: number = 0
+): WatchShift[] => {
+  const dn: DayNightConfig = config.dayNight;
+  const shifts: WatchShift[] = [];
+  let currentTime = startDateTime.getTime();
+  let crewIndex = 0;
+
+  const isInDayWindow = (hour: number) =>
+    dn.dayStartHour < dn.nightStartHour
+      ? hour >= dn.dayStartHour && hour < dn.nightStartHour
+      : hour >= dn.dayStartHour || hour < dn.nightStartHour; // wraps midnight
+
+  while (currentTime < endTime) {
+    const currentHour = getShipHour(currentTime, shipTimeOffsetHours);
+    const isDay = isInDayWindow(currentHour);
+    const watchDuration = isDay ? dn.dayWatchDurationHours : dn.nightWatchDurationHours;
+    let durationHours = Math.max(0.5, watchDuration);
+    let isCaptainsHour = false;
+
+    // Captain's Hour check (captainsHourStart is in ship time)
+    if (dn.captainsHourEnabled) {
+      if (currentHour === dn.captainsHourStart) {
+        isCaptainsHour = true;
+        durationHours = 1;
+      } else {
+        const next = nextShipHourBoundary(currentTime, shipTimeOffsetHours, dn.captainsHourStart);
+        const hoursUntil = (next - currentTime) / 3_600_000;
+        if (hoursUntil < durationHours && hoursUntil > 0.01) durationHours = hoursUntil;
+      }
+    }
+
+    // Truncate at day/night boundary (dayStartHour/nightStartHour are in ship time)
+    if (!isCaptainsHour) {
+      const boundaryHour = isDay ? dn.nightStartHour : dn.dayStartHour;
+      const boundary = nextShipHourBoundary(currentTime, shipTimeOffsetHours, boundaryHour);
+      const hoursUntilBoundary = (boundary - currentTime) / 3_600_000;
+      if (hoursUntilBoundary < durationHours && hoursUntilBoundary > 0.01) {
+        durationHours = hoursUntilBoundary;
+      }
+    }
+
+    const shiftEnd = currentTime + durationHours * 3_600_000;
+    shifts.push({
+      id: `shift-${currentTime}`,
+      startTime: currentTime,
+      endTime: shiftEnd,
+      crewMemberIds: isCaptainsHour ? activeCrew.map(c => c.id) : [activeCrew[crewIndex].id],
+      isCaptainsHour,
+    });
+    currentTime = shiftEnd;
+    if (!isCaptainsHour) crewIndex = (crewIndex + 1) % activeCrew.length;
+  }
+
+  return shifts;
+};
+
+// ─── Mode: Custom ─────────────────────────────────────────────────────────────
+
+const generateCustom = (
+  activeCrew: CrewMember[],
+  config: WatchConfig,
+  startDateTime: Date,
+  endTime: number
+): WatchShift[] => {
+  const { slots } = config.custom;
+  if (slots.length === 0) return [];
+
+  const shifts: WatchShift[] = [];
+  let currentTime = startDateTime.getTime();
+  let slotIndex = 0;
+  let autoCrewIndex = 0; // global counter — drifts across cycles
+
+  while (currentTime < endTime) {
+    const slot = slots[slotIndex % slots.length];
+    const durationHours = Math.max(0.5, slot.durationHours || 1);
+
+    // Resolve crew: explicit assignment takes priority; fall back to auto-rotation
+    let crewId: string;
+    if (slot.crewMemberId !== null) {
+      const found = activeCrew.find(c => c.id === slot.crewMemberId);
+      crewId = found ? found.id : activeCrew[autoCrewIndex % activeCrew.length].id;
+    } else {
+      crewId = activeCrew[autoCrewIndex % activeCrew.length].id;
+      autoCrewIndex++;
+    }
+
+    const shiftEnd = currentTime + durationHours * 3_600_000;
+    shifts.push({
+      id: `shift-${currentTime}`,
+      startTime: currentTime,
+      endTime: shiftEnd,
+      crewMemberIds: [crewId],
+      isCaptainsHour: false,
+    });
+    currentTime = shiftEnd;
+    slotIndex++;
+  }
+
+  return shifts;
+};
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+export const generateSchedule = (
+  crew: CrewMember[],
+  config: WatchConfig,
+  daysToGenerate: number = 7,
+  shipTimeOffsetHours: number = 0
+): WatchShift[] => {
+  const activeCrew = crew.filter(c => c.isActive);
+  if (activeCrew.length === 0) return [];
+
+  const startDateTime = parseStartDateTime(config);
+  const endTime = startDateTime.getTime() + daysToGenerate * 24 * 3_600_000;
+
+  switch (config.mode) {
+    case 'day-night': return generateDayNight(activeCrew, config, startDateTime, endTime, shipTimeOffsetHours);
+    case 'custom':    return generateCustom(activeCrew, config, startDateTime, endTime);
+    default:          return generateStandard(activeCrew, config, startDateTime, endTime, shipTimeOffsetHours);
+  }
+};
+
 export const checkRotationQuality = (crewCount: number, watchLengthHours: number): RotationStatus => {
   if (crewCount === 0 || watchLengthHours === 0) return RotationStatus.WARNING;
-  
   const cycleTime = crewCount * watchLengthHours;
-  
   if (cycleTime % 24 === 0) return RotationStatus.BAD;
   if (24 % cycleTime === 0) return RotationStatus.BAD;
-
   return RotationStatus.GOOD;
 };
 
 export const formatTime = (timestamp: number, offsetHours: number = 0): string => {
-  if (!timestamp || isNaN(timestamp)) return "--:--";
-  
-  // Ensure offsetHours is a number, default to 0 if undefined/null/NaN
-  const safeOffset = (typeof offsetHours === 'number' && !isNaN(offsetHours)) ? offsetHours : 0;
-  
+  if (!timestamp || isNaN(timestamp)) return '--:--';
+  const safeOffset = typeof offsetHours === 'number' && !isNaN(offsetHours) ? offsetHours : 0;
   try {
-    const date = new Date(timestamp + (safeOffset * 60 * 60 * 1000));
-    if (isNaN(date.getTime())) return "--:--";
+    const date = new Date(timestamp + safeOffset * 3_600_000);
+    if (isNaN(date.getTime())) return '--:--';
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-  } catch (e) {
-    return "--:--";
+  } catch {
+    return '--:--';
   }
 };
