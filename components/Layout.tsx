@@ -20,7 +20,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className={`min-h-screen flex flex-col ${settings.theme === 'dark' ? 'dark bg-slate-900 text-white' : 'bg-gray-50'}`}>
       {/* Top Header */}
-      <header className="sticky top-0 z-20 bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-4 py-3 shadow-sm">
+      <header className="sticky top-0 z-20 bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-4 pb-3 pt-safe shadow-sm">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Anchor className="w-6 h-6 text-blue-600 dark:text-blue-400" />

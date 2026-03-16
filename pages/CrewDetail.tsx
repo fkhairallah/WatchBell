@@ -1,10 +1,12 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import QRCode from 'qrcode';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { useApp } from '../context/AppContext';
 import { formatTime } from '../utils/scheduleLogic';
 import { generateICS } from '../utils/icsGenerator';
-import { ArrowLeft, Clock, QrCode, X, Download } from 'lucide-react';
+import { ArrowLeft, Clock, Share2, X, Download, MessageSquare } from 'lucide-react';
 
 const DAY_OPTIONS = [1, 2, 3] as const;
 type DayOption = typeof DAY_OPTIONS[number];
@@ -15,21 +17,10 @@ export const CrewDetail: React.FC = () => {
   const id = currentRoute.split('/').pop();
   const member = crew.find(c => c.id === id);
 
-  const [showQR, setShowQR] = useState(false);
-  const [qrDays, setQrDays] = useState<DayOption>(2);
-  const [qrError, setQrError] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [showShare, setShowShare] = useState(false);
+  const [shareDays, setShareDays] = useState<DayOption>(2);
 
   const memberShifts = member ? schedule.filter(s => s.crewMemberIds.includes(member.id)) : [];
-
-  useEffect(() => {
-    if (!showQR || !canvasRef.current || !member) return;
-    setQrError(false);
-    const icsText = generateICS(member, memberShifts, effectiveOffset, qrDays);
-    QRCode.toCanvas(canvasRef.current, icsText, { width: 260, margin: 2, errorCorrectionLevel: 'M' }, (err) => {
-      if (err) setQrError(true);
-    });
-  }, [showQR, qrDays, member, memberShifts, settings]);
 
   if (!member) {
     return (
@@ -40,7 +31,7 @@ export const CrewDetail: React.FC = () => {
     );
   }
 
-  // Group by day for nicer display
+  // Group by day for schedule display
   const shiftsByDay: Record<string, typeof memberShifts> = {};
   memberShifts.forEach(shift => {
     const date = new Date(shift.startTime + (effectiveOffset * 3600000));
@@ -49,26 +40,78 @@ export const CrewDetail: React.FC = () => {
     shiftsByDay[dayKey].push(shift);
   });
 
-  const upcomingCount = memberShifts.filter(s => s.endTime >= Date.now() && s.startTime <= Date.now() + qrDays * 24 * 3600 * 1000).length;
+  const now = Date.now();
+  const cutoff = now + shareDays * 24 * 3600 * 1000;
+  const relevantShifts = memberShifts.filter(s => s.endTime >= now && s.startTime <= cutoff);
 
-  const downloadICS = () => {
-    const icsText = generateICS(member!, memberShifts, effectiveOffset, qrDays);
-    const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${member!.name.replace(/\s+/g, '-')}-watch-schedule.ics`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const generateShareText = (): string => {
+    const byDay: Record<string, typeof relevantShifts> = {};
+    relevantShifts.forEach(shift => {
+      const date = new Date(shift.startTime + effectiveOffset * 3600000);
+      const dayKey = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+      if (!byDay[dayKey]) byDay[dayKey] = [];
+      byDay[dayKey].push(shift);
+    });
+
+    const lines: string[] = [`${member.name} - Watch Schedule\n`];
+    Object.entries(byDay).forEach(([day, shifts]) => {
+      lines.push(day);
+      shifts.forEach(shift => {
+        const start = formatTime(shift.startTime, effectiveOffset, settings.use24Hour);
+        const end = formatTime(shift.endTime, effectiveOffset, settings.use24Hour);
+        const label = shift.isCaptainsHour ? "Captain's Hour" : 'Watch';
+        lines.push(`  ${start} - ${end}  (${label})`);
+      });
+      lines.push('');
+    });
+
+    return lines.join('\n').trim();
+  };
+
+  const shareAsText = async () => {
+    const text = generateShareText();
+    if (Capacitor.isNativePlatform()) {
+      await Share.share({ title: `${member.name} Watch Schedule`, text });
+    } else if (navigator.share) {
+      await navigator.share({ title: `${member.name} Watch Schedule`, text });
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+  };
+
+  const shareAsICS = async () => {
+    const icsText = generateICS(member, memberShifts, effectiveOffset, shareDays);
+    const fileName = `${member.name.replace(/\s+/g, '-')}-watch-schedule.ics`;
+
+    if (Capacitor.isNativePlatform()) {
+      await Filesystem.writeFile({
+        path: fileName,
+        data: icsText,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+      });
+      const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
+      await Share.share({ title: `${member.name} Watch Schedule`, files: [uri] });
+    } else {
+      const blob = new Blob([icsText], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   };
 
   const floatingBtn = ReactDOM.createPortal(
     <button
-      onClick={() => setShowQR(true)}
+      onClick={() => setShowShare(true)}
       className="fixed top-16 right-4 z-40 flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-lg"
     >
-      <QrCode className="w-4 h-4" />
-      Share via QR
+      <Share2 className="w-4 h-4" />
+      Share
     </button>,
     document.body
   );
@@ -136,11 +179,11 @@ export const CrewDetail: React.FC = () => {
         ))}
       </div>
 
-      {/* QR Modal */}
-      {showQR && (
+      {/* Share Modal */}
+      {showShare && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm p-4 pt-6"
-          onClick={() => setShowQR(false)}
+          onClick={() => setShowShare(false)}
         >
           <div
             className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
@@ -153,7 +196,7 @@ export const CrewDetail: React.FC = () => {
                 <p className="text-xs text-gray-500 dark:text-gray-400">{member.name}</p>
               </div>
               <button
-                onClick={() => setShowQR(false)}
+                onClick={() => setShowShare(false)}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -165,9 +208,9 @@ export const CrewDetail: React.FC = () => {
               {DAY_OPTIONS.map(d => (
                 <button
                   key={d}
-                  onClick={() => setQrDays(d)}
+                  onClick={() => setShareDays(d)}
                   className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-                    qrDays === d
+                    shareDays === d
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                   }`}
@@ -177,35 +220,31 @@ export const CrewDetail: React.FC = () => {
               ))}
             </div>
 
-            {/* Download — primary action, works reliably on all platforms */}
+            <p className="text-xs text-center text-gray-400 dark:text-gray-500">
+              {relevantShifts.length} shift{relevantShifts.length !== 1 ? 's' : ''} in this window
+            </p>
+
+            {/* Share as ICS */}
             <button
-              onClick={downloadICS}
+              onClick={shareAsICS}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors"
             >
               <Download className="w-4 h-4" />
-              Download .ics ({upcomingCount} shift{upcomingCount !== 1 ? 's' : ''})
+              Share as Calendar File (.ics)
             </button>
 
-            {/* Divider */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-gray-200 dark:bg-slate-600" />
-              <span className="text-xs text-gray-400">or scan QR</span>
-              <div className="flex-1 h-px bg-gray-200 dark:bg-slate-600" />
-            </div>
+            {/* Share as Text */}
+            <button
+              onClick={shareAsText}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-semibold transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Share as Text
+            </button>
 
-            {/* QR Code — secondary; Android camera only imports 1st event */}
-            <div className="flex flex-col items-center gap-2">
-              {qrError ? (
-                <div className="w-[260px] h-[260px] flex items-center justify-center bg-gray-100 dark:bg-slate-700 rounded-xl text-center text-sm text-gray-500 dark:text-gray-400 p-4">
-                  Too many shifts to encode. Try a shorter window.
-                </div>
-              ) : (
-                <canvas ref={canvasRef} className="rounded-xl" />
-              )}
-              <p className="text-xs text-center text-gray-400 dark:text-gray-500">
-                QR works best on iOS. Android camera may only import the first event — use the download button instead.
-              </p>
-            </div>
+            <p className="text-xs text-center text-gray-400 dark:text-gray-500">
+              Text works for messaging apps. .ics imports directly into any calendar.
+            </p>
           </div>
         </div>
       )}
