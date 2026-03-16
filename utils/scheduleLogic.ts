@@ -4,7 +4,7 @@ import { CrewMember, WatchConfig, WatchShift, RotationStatus, DayNightConfig } f
 
 /** Returns the hour (0–23) at the given timestamp in ship time. */
 const getShipHour = (ms: number, offsetHours: number): number =>
-  new Date(ms + offsetHours * 3_600_000).getHours();
+  new Date(ms + offsetHours * 3_600_000).getUTCHours();
 
 /**
  * Returns the next timestamp at which ship time will be exactly
@@ -13,18 +13,19 @@ const getShipHour = (ms: number, offsetHours: number): number =>
 const nextShipHourBoundary = (ms: number, offsetHours: number, boundaryHour: number): number => {
   const shipDate = new Date(ms + offsetHours * 3_600_000);
   const boundary = new Date(shipDate);
-  boundary.setHours(boundaryHour, 0, 0, 0);
-  if (boundary.getTime() <= shipDate.getTime()) boundary.setDate(boundary.getDate() + 1);
+  boundary.setUTCHours(boundaryHour, 0, 0, 0);
+  if (boundary.getTime() <= shipDate.getTime()) boundary.setUTCDate(boundary.getUTCDate() + 1);
   return boundary.getTime() - offsetHours * 3_600_000;
 };
 
-const parseStartDateTime = (config: WatchConfig): Date => {
+const parseStartDateTime = (config: WatchConfig, shipTimeOffsetHours: number = 0): Date => {
   let dt: Date;
   try {
     dt = new Date(config.startDate);
     if (isNaN(dt.getTime())) throw new Error();
   } catch {
     dt = new Date();
+    dt.setUTCHours(0, 0, 0, 0);
   }
 
   let h = 8, m = 0;
@@ -33,7 +34,8 @@ const parseStartDateTime = (config: WatchConfig): Date => {
     if (!isNaN(ph) && !isNaN(pm)) { h = ph; m = pm; }
   }
 
-  dt.setHours(h, m, 0, 0);
+  // startTime is in ship time; convert to UTC: UTC = ship_time - offset
+  dt.setUTCHours(h - shipTimeOffsetHours, m, 0, 0);
   return dt;
 };
 
@@ -202,7 +204,7 @@ export const generateSchedule = (
   const activeCrew = crew.filter(c => c.isActive);
   if (activeCrew.length === 0) return [];
 
-  const startDateTime = parseStartDateTime(config);
+  const startDateTime = parseStartDateTime(config, shipTimeOffsetHours);
   const endTime = startDateTime.getTime() + daysToGenerate * 24 * 3_600_000;
 
   switch (config.mode) {

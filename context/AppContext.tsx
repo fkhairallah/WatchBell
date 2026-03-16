@@ -31,6 +31,7 @@ interface AppContextType {
 
   schedule: WatchShift[];
   refreshSchedule: () => void;
+  now: number;
 
   currentRoute: string;
   navigateTo: (path: string) => void;
@@ -119,6 +120,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }));
 
   const [schedule, setSchedule] = useState<WatchShift[]>([]);
+  const [now, setNow] = useState(Date.now());
 
   const [currentRoute, setCurrentRoute] = useState(() => window.location.hash.slice(1) || '/');
 
@@ -129,6 +131,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   const navigateTo = (path: string) => { window.location.hash = path; };
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => { saveToStorage('wm_crew', crew); refreshSchedule(); }, [crew]);
   useEffect(() => { saveToStorage('wm_config', config); refreshSchedule(); }, [config]);
@@ -174,9 +181,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     : settings.shipTimeOffset;
 
   const refreshSchedule = () =>
-    setSchedule(generateSchedule(crew, config, 7,
-      settings.usePhoneTime ? -new Date().getTimezoneOffset() / 60 : settings.shipTimeOffset
-    ));
+    setSchedule(generateSchedule(crew, config, 7, effectiveOffset));
 
   // ── Crew ──────────────────────────────────────────────────────────────────
 
@@ -259,7 +264,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       updateStandardConfig, updateDayNightConfig,
       addCustomSlot, removeCustomSlot, updateCustomSlot, reorderCustomSlots, autoFillCustomSlots,
       settings, updateSettings, effectiveOffset,
-      schedule, refreshSchedule,
+      schedule, refreshSchedule, now,
       currentRoute, navigateTo,
     }}>
       {children}

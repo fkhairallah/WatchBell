@@ -12,7 +12,7 @@ const DAY_OPTIONS = [1, 2, 3] as const;
 type DayOption = typeof DAY_OPTIONS[number];
 
 export const CrewDetail: React.FC = () => {
-  const { crew, schedule, settings, effectiveOffset, currentRoute, navigateTo } = useApp();
+  const { crew, schedule, settings, effectiveOffset, currentRoute, navigateTo, now } = useApp();
 
   const id = currentRoute.split('/').pop();
   const member = crew.find(c => c.id === id);
@@ -40,7 +40,6 @@ export const CrewDetail: React.FC = () => {
     shiftsByDay[dayKey].push(shift);
   });
 
-  const now = Date.now();
   const cutoff = now + shareDays * 24 * 3600 * 1000;
   const relevantShifts = memberShifts.filter(s => s.endTime >= now && s.startTime <= cutoff);
 
@@ -143,7 +142,8 @@ export const CrewDetail: React.FC = () => {
             </h3>
             <div className="grid grid-cols-1 gap-3">
               {shifts.map(shift => {
-                const isNight = new Date(shift.startTime).getHours() < 6 || new Date(shift.startTime).getHours() > 20;
+                const shipHour = new Date(shift.startTime + effectiveOffset * 3_600_000).getUTCHours();
+                const isNight = shipHour < 6 || shipHour >= 20;
                 return (
                   <div
                     key={shift.id}

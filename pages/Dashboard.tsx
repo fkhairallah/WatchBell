@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -16,15 +16,9 @@ const formatDuration = (ms: number): string => {
 };
 
 export const Dashboard: React.FC = () => {
-  const { schedule, settings, effectiveOffset, crew, navigateTo } = useApp();
-  const [now, setNow] = useState(Date.now());
+  const { schedule, settings, effectiveOffset, crew, navigateTo, now } = useApp();
   const [scheduleHtml, setScheduleHtml] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 60000);
-    return () => clearInterval(timer);
-  }, []);
 
   const viewFullSchedule = () => {
     const html = generateScheduleHtml(schedule, crew, effectiveOffset, settings);
@@ -199,7 +193,8 @@ export const Dashboard: React.FC = () => {
         <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Upcoming 12 Hours</h2>
         <div className="bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-gray-200 dark:border-slate-600 divide-y divide-gray-100 dark:divide-slate-600">
           {schedule.filter(s => s.endTime > now).slice(0, 4).map((shift) => {
-            const isDay = new Date(shift.startTime).getHours() >= 6 && new Date(shift.startTime).getHours() < 18;
+            const shipHour = new Date(shift.startTime + effectiveOffset * 3_600_000).getUTCHours();
+            const isDay = shipHour >= 6 && shipHour < 18;
             return (
               <div
                 key={shift.id}
