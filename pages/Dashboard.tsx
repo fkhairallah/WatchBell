@@ -1,7 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { useApp } from '../context/AppContext';
 import { formatTime } from '../utils/scheduleLogic';
-import { User, Anchor, Sun, Moon } from 'lucide-react';
+import { generateScheduleHtml } from '../utils/scheduleHtmlGenerator';
+import { User, Anchor, Sun, Moon, CalendarDays, X, Printer, Share2 } from 'lucide-react';
 
 const formatDuration = (ms: number): string => {
   const totalMinutes = Math.ceil(ms / 60000);
@@ -13,11 +18,42 @@ const formatDuration = (ms: number): string => {
 export const Dashboard: React.FC = () => {
   const { schedule, settings, effectiveOffset, crew, navigateTo } = useApp();
   const [now, setNow] = useState(Date.now());
+  const [scheduleHtml, setScheduleHtml] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 60000); // Update every minute
+    const timer = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(timer);
   }, []);
+
+  const viewFullSchedule = () => {
+    const html = generateScheduleHtml(schedule, crew, effectiveOffset, settings);
+    if (!Capacitor.isNativePlatform()) {
+      // Web: open in a new tab
+      const blob = new Blob([html], { type: 'text/html' });
+      window.open(URL.createObjectURL(blob), '_blank');
+    } else {
+      // Native: show in full-screen in-app iframe
+      setScheduleHtml(html);
+    }
+  };
+
+  const printSchedule = () => {
+    iframeRef.current?.contentWindow?.print();
+  };
+
+  const shareSchedule = async () => {
+    if (!scheduleHtml) return;
+    const fileName = 'watchmaker-schedule.html';
+    await Filesystem.writeFile({
+      path: fileName,
+      data: scheduleHtml,
+      directory: Directory.Cache,
+      encoding: Encoding.UTF8,
+    });
+    const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
+    await Share.share({ title: 'Watch Schedule', files: [uri] });
+  };
 
   if (crew.length === 0) {
     return (
@@ -27,7 +63,7 @@ export const Dashboard: React.FC = () => {
         </div>
         <h2 className="text-xl font-semibold dark:text-white">No Crew Added</h2>
         <p className="text-gray-500 dark:text-gray-400 max-w-xs">Add crew members and configure a schedule to get started.</p>
-        <button 
+        <button
           onClick={() => navigateTo('/crew')}
           className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
         >
@@ -40,14 +76,13 @@ export const Dashboard: React.FC = () => {
   // Find current shift
   const currentShiftIndex = schedule.findIndex(s => s.startTime <= now && s.endTime > now);
   const currentShift = currentShiftIndex !== -1 ? schedule[currentShiftIndex] : null;
-  
+
   // Find next shift logic
   let nextShift = null;
   if (currentShiftIndex !== -1 && currentShiftIndex + 1 < schedule.length) {
-      nextShift = schedule[currentShiftIndex + 1];
+    nextShift = schedule[currentShiftIndex + 1];
   } else if (currentShiftIndex === -1) {
-      // If no current shift, find the first one in the future
-      nextShift = schedule.find(s => s.startTime > now) || null;
+    nextShift = schedule.find(s => s.startTime > now) || null;
   }
 
   // Calculate progress of current shift
@@ -58,9 +93,8 @@ export const Dashboard: React.FC = () => {
     progress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
   }
 
-  const getCrewNames = (ids: string[]) => {
-    return ids.map(id => crew.find(c => c.id === id)?.name || 'Unknown').join(', ');
-  };
+  const getCrewNames = (ids: string[]) =>
+    ids.map(id => crew.find(c => c.id === id)?.name || 'Unknown').join(', ');
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -78,6 +112,15 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* View Full Schedule */}
+      <button
+        onClick={viewFullSchedule}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-blue-200 dark:border-slate-600 text-blue-600 dark:text-blue-400 font-semibold text-sm hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors"
+      >
+        <CalendarDays className="w-4 h-4" />
+        View Full Schedule
+      </button>
+
       {/* Current Watch Card */}
       <div className="space-y-2">
         <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">On Watch Now</h2>
@@ -86,7 +129,7 @@ export const Dashboard: React.FC = () => {
             <div className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                   <h3 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                     {getCrewNames(currentShift.crewMemberIds)}
                   </h3>
                   {currentShift.isCaptainsHour && (
@@ -101,13 +144,13 @@ export const Dashboard: React.FC = () => {
                   </p>
                 </div>
               </div>
-              
+
               {/* Progress Bar */}
               <div className="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-3 mb-2">
-                <div 
+                <div
                   className="bg-blue-500 h-3 rounded-full transition-all duration-1000 ease-out"
                   style={{ width: `${progress}%` }}
-                ></div>
+                />
               </div>
               <div className="flex justify-between text-xs text-gray-400 font-mono">
                 <span>Elapsed: {formatDuration(now - currentShift.startTime)}</span>
@@ -140,8 +183,8 @@ export const Dashboard: React.FC = () => {
                 </p>
               </div>
             </div>
-             <div className="text-right font-mono text-slate-600 dark:text-slate-400 text-sm">
-                {formatTime(nextShift.startTime, effectiveOffset, settings.use24Hour)}
+            <div className="text-right font-mono text-slate-600 dark:text-slate-400 text-sm">
+              {formatTime(nextShift.startTime, effectiveOffset, settings.use24Hour)}
             </div>
           </div>
         ) : (
@@ -156,14 +199,14 @@ export const Dashboard: React.FC = () => {
         <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Upcoming 12 Hours</h2>
         <div className="bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-gray-200 dark:border-slate-600 divide-y divide-gray-100 dark:divide-slate-600">
           {schedule.filter(s => s.endTime > now).slice(0, 4).map((shift) => {
-             const isDay = new Date(shift.startTime).getHours() >= 6 && new Date(shift.startTime).getHours() < 18;
-             return (
-              <div 
-                key={shift.id} 
+            const isDay = new Date(shift.startTime).getHours() >= 6 && new Date(shift.startTime).getHours() < 18;
+            return (
+              <div
+                key={shift.id}
                 className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-slate-750 transition-colors cursor-pointer"
                 onClick={() => {
-                   const memberId = shift.crewMemberIds[0];
-                   if(memberId) navigateTo(`/crew/${memberId}`);
+                  const memberId = shift.crewMemberIds[0];
+                  if (memberId) navigateTo(`/crew/${memberId}`);
                 }}
               >
                 <div className="flex items-center space-x-3">
@@ -185,6 +228,44 @@ export const Dashboard: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Full Schedule Modal (native only) */}
+      {scheduleHtml !== null && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+          <div className="flex items-center justify-between px-4 border-b border-gray-200 bg-white" style={{ paddingTop: 'env(safe-area-inset-top)', minHeight: '56px' }}>
+            <button
+              onClick={() => setScheduleHtml(null)}
+              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <span className="font-semibold text-slate-800 text-sm">Full Schedule</span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={printSchedule}
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                title="Print"
+              >
+                <Printer className="w-5 h-5" />
+              </button>
+              <button
+                onClick={shareSchedule}
+                className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                title="Share"
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          <iframe
+            ref={iframeRef}
+            srcDoc={scheduleHtml}
+            className="flex-1 w-full border-0"
+            title="Watch Schedule"
+          />
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

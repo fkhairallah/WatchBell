@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     namespace "com.watchmaker.app"
-    compileSdk rootProject.ext.compileSdkVersion
+    compileSdk 36
     defaultConfig {
         applicationId "com.watchmaker.app"
         minSdkVersion rootProject.ext.minSdkVersion
