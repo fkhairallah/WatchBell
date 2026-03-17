@@ -45,7 +45,7 @@ export const Dashboard: React.FC = () => {
 
   const shareSchedule = async () => {
     if (!scheduleHtml) return;
-    const fileName = 'watchmaker-schedule.html';
+    const fileName = 'watchbell-schedule.html';
     await Filesystem.writeFile({
       path: fileName,
       data: scheduleHtml,

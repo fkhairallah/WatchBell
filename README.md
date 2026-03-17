@@ -1,6 +1,6 @@
-# WatchMaker
+# WatchBell
 
-A maritime watch scheduling application for ship crews. WatchMaker generates rotating watch schedules, tracks current and upcoming shifts in real time, and lets crew members export their personal schedules to any calendar app.
+A maritime watch scheduling application for ship crews. WatchBell generates rotating watch schedules, tracks current and upcoming shifts in real time, and lets crew members export their personal schedules to any calendar app.
 
 Available as a web app and native mobile app (iOS & Android via Capacitor).
 
@@ -65,7 +65,7 @@ Three scheduling modes:
 ## Project Structure
 
 ```
-watchmaker/
+watchbell/
 ├── index.html                      # HTML entry point
 ├── index.tsx                       # React entry point
 ├── App.tsx                         # Root component, routing, error boundary

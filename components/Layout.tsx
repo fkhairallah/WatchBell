@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Users, Settings, Clock, Anchor } from 'lucide-react';
+import { Home, Users, Settings, Clock, Bell } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,8 +23,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       <header className="sticky top-0 z-20 bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 px-4 pb-3 pt-safe shadow-sm">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Anchor className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            <h1 className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100">WatchMaker</h1>
+            <Bell className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100">WatchBell</h1>
           </div>
           {settings.nightVision && (
             <span className="text-xs font-bold text-red-600 border border-red-600 px-2 py-0.5 rounded uppercase tracking-wider animate-pulse">

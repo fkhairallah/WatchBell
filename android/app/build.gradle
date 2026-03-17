@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.watchmaker.app"
+    namespace "com.watchbell.app"
     compileSdk 36
     defaultConfig {
-        applicationId "com.watchmaker.app"
+        applicationId "com.watchbell.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

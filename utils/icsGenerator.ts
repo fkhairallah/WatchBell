@@ -42,7 +42,7 @@ export function generateICS(
       `DTSTART:${toICSDate(shift.startTime, offsetHours)}`,
       `DTEND:${toICSDate(shift.endTime, offsetHours)}`,
       `SUMMARY:${summary}`,
-      `UID:wm-${shift.id}@watchmaker`,
+      `UID:wb-${shift.id}@watchbell`,
       'END:VEVENT',
     ].join('\r\n');
   });
@@ -50,7 +50,7 @@ export function generateICS(
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//WatchMaker//EN',
+    'PRODID:-//WatchBell//EN',
     'CALSCALE:GREGORIAN',
     ...events,
     'END:VCALENDAR',

@@ -193,7 +193,7 @@ export const SettingsPage: React.FC = () => {
 
       {/* Danger Zone */}
        <section className="pt-6 border-t border-gray-200 dark:border-slate-800">
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">WatchMaker v{version}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">WatchBell v{version}</p>
         <button
             onClick={handleReset}
             className="flex items-center space-x-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition-colors"

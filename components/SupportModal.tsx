@@ -30,10 +30,10 @@ export const SupportModal: React.FC<Props> = ({ onClose, onSnooze }) => {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Enjoying WatchMaker?</h2>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Enjoying WatchBell?</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
               I'm a solo dev building this in my spare time — no ads, no subscriptions.
-              If WatchMaker has been useful on your watch, a coffee keeps the updates coming.
+              If WatchBell has been useful on your watch, a coffee keeps the updates coming.
             </p>
           </div>
 
