@@ -1,4 +1,4 @@
-package com.watchmaker.app;
+package com.deligent.watchbell;
 
 import com.getcapacitor.BridgeActivity;
 

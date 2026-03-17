@@ -9,7 +9,9 @@
       "Bash(npx cap:*)",
       "Bash(python3:*)",
       "Bash(node:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx:*)",
+      "Bash(cordova-res:*)"
     ]
   }
 }

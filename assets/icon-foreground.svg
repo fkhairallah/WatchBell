@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Transparent background for adaptive icon foreground -->
+  <!-- Bell body -->
+  <path d="M512 180 C378 180 270 288 270 422 C270 580 210 640 180 680 L844 680 C814 640 754 580 754 422 C754 288 646 180 512 180 Z" fill="white"/>
+  <!-- Bell clapper -->
+  <ellipse cx="512" cy="730" rx="80" ry="80" fill="white"/>
+  <!-- Clapper notch -->
+  <rect x="472" y="672" width="80" height="60" fill="white"/>
+  <!-- Bell bottom rim -->
+  <rect x="180" y="668" width="664" height="48" rx="24" fill="white"/>
+  <!-- Hanger -->
+  <rect x="480" y="100" width="64" height="100" rx="32" fill="white"/>
+</svg>
