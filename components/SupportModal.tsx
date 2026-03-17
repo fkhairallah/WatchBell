@@ -5,9 +5,10 @@ const BMC_URL = 'https://www.buymeacoffee.com/fadyk';
 
 interface Props {
   onClose: () => void;
+  onSnooze: () => void;
 }
 
-export const SupportModal: React.FC<Props> = ({ onClose }) => {
+export const SupportModal: React.FC<Props> = ({ onClose, onSnooze }) => {
   const handleSupport = () => {
     window.open(BMC_URL, '_blank', 'noopener,noreferrer');
     onClose();
@@ -45,7 +46,7 @@ export const SupportModal: React.FC<Props> = ({ onClose }) => {
           </button>
 
           <button
-            onClick={onClose}
+            onClick={onSnooze}
             className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             Maybe later

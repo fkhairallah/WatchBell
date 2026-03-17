@@ -8,7 +8,7 @@ import { CrewDetail } from './pages/CrewDetail';
 import { SettingsPage } from './pages/Settings';
 import { SupportModal } from './components/SupportModal';
 
-const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
+const SHOW_REQUEST_TIME_INTERVAL = 7 * 24 * 60 * 60 * 1000;
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -78,13 +78,18 @@ const MainContent = () => {
     }
     // Show modal once, 2 weeks after first use
     const shown = localStorage.getItem('wm_support_shown');
-    if (!shown && Date.now() - Number(firstUsed) >= TWO_WEEKS_MS) {
+    if (!shown && Date.now() - Number(firstUsed) >= SHOW_REQUEST_TIME_INTERVAL) {
       setShowSupport(true);
     }
   }, []);
 
   const handleClose = () => {
     localStorage.setItem('wm_support_shown', '1');
+    setShowSupport(false);
+  };
+
+  const handleSnooze = () => {
+    localStorage.setItem('wm_first_used', String(Date.now()));
     setShowSupport(false);
   };
 
@@ -95,7 +100,7 @@ const MainContent = () => {
   else if (currentRoute === '/settings') page = <SettingsPage />;
   else page = <Dashboard />;
 
-  return <>{page}{showSupport && <SupportModal onClose={handleClose} />}</>;
+  return <>{page}{showSupport && <SupportModal onClose={handleClose} onSnooze={handleSnooze} />}</>;
 };
 
 const App: React.FC = () => {

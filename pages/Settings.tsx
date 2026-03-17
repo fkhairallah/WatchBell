@@ -99,6 +99,29 @@ export const SettingsPage: React.FC = () => {
         <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Time & Location</h2>
         <div className="bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-gray-200 dark:border-slate-600 divide-y divide-gray-100 dark:divide-slate-600">
 
+          {/* 12 / 24-hour clock */}
+          <div className="flex items-center justify-between p-5">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 rounded-full bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800 dark:text-white">Clock Format</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">How times are displayed throughout the app.</p>
+              </div>
+            </div>
+            <div className="bg-gray-100 dark:bg-slate-600 rounded-lg p-1 flex">
+              <button
+                onClick={() => updateSettings({ use24Hour: true })}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${settings.use24Hour ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'text-gray-500 dark:text-gray-400'}`}
+              >24h</button>
+              <button
+                onClick={() => updateSettings({ use24Hour: false })}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${!settings.use24Hour ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'text-gray-500 dark:text-gray-400'}`}
+              >12h</button>
+            </div>
+          </div>
+
           {/* Use phone time toggle */}
           <div className="flex items-center justify-between p-5">
             <div className="flex items-center space-x-4">
@@ -122,29 +145,6 @@ export const SettingsPage: React.FC = () => {
                 className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.usePhoneTime ? 'translate-x-5' : 'translate-x-0'}`}
               />
             </button>
-          </div>
-
-          {/* 12 / 24-hour clock */}
-          <div className="flex items-center justify-between p-5">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-full bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300">
-                <Clock className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-800 dark:text-white">Clock Format</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">How times are displayed throughout the app.</p>
-              </div>
-            </div>
-            <div className="bg-gray-100 dark:bg-slate-600 rounded-lg p-1 flex">
-              <button
-                onClick={() => updateSettings({ use24Hour: true })}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${settings.use24Hour ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'text-gray-500 dark:text-gray-400'}`}
-              >24h</button>
-              <button
-                onClick={() => updateSettings({ use24Hour: false })}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${!settings.use24Hour ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'text-gray-500 dark:text-gray-400'}`}
-              >12h</button>
-            </div>
           </div>
 
           {/* Manual offset */}

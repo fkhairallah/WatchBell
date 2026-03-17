@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { useApp } from '../context/AppContext';
-import { formatTime } from '../utils/scheduleLogic';
+import { formatTime, generateSchedule } from '../utils/scheduleLogic';
 import { generateScheduleHtml } from '../utils/scheduleHtmlGenerator';
 import { User, Anchor, Sun, Moon, CalendarDays, X, Printer, Share2 } from 'lucide-react';
 
@@ -16,12 +16,19 @@ const formatDuration = (ms: number): string => {
 };
 
 export const Dashboard: React.FC = () => {
-  const { schedule, settings, effectiveOffset, crew, navigateTo, now } = useApp();
+  const { schedule, config, settings, effectiveOffset, crew, navigateTo, now } = useApp();
   const [scheduleHtml, setScheduleHtml] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const viewFullSchedule = () => {
-    const html = generateScheduleHtml(schedule, crew, effectiveOffset, settings);
+    // Regenerate the schedule starting from now in ship time
+    const shipNow = new Date(now + effectiveOffset * 3_600_000);
+    const startDateStr = shipNow.toISOString().split('T')[0];
+    const h = String(shipNow.getUTCHours()).padStart(2, '0');
+    const m = String(shipNow.getUTCMinutes()).padStart(2, '0');
+    const freshConfig = { ...config, startDate: startDateStr, startTime: `${h}:${m}` };
+    const freshSchedule = generateSchedule(crew, freshConfig, 7, effectiveOffset);
+    const html = generateScheduleHtml(freshSchedule, crew, effectiveOffset, settings);
     if (!Capacitor.isNativePlatform()) {
       // Web: open in a new tab
       const blob = new Blob([html], { type: 'text/html' });
@@ -132,8 +139,8 @@ export const Dashboard: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-mono font-medium text-slate-700 dark:text-slate-300">
+                <div className="text-right shrink-0">
+                  <p className="text-2xl font-mono font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     {formatTime(currentShift.startTime, effectiveOffset, settings.use24Hour)} - {formatTime(currentShift.endTime, effectiveOffset, settings.use24Hour)}
                   </p>
                 </div>
