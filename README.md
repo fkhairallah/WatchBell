@@ -156,3 +156,11 @@ App ID: `com.deligent.watchmaker`
 **ICS export** — standard iCalendar format ensures compatibility with all major calendar applications.
 
 **Geolocation night vision** — uses NOAA solar equations to calculate local sunset/sunrise from GPS coordinates for automatic night vision activation.
+
+---
+
+## Support
+
+If WatchBell has been useful on your watch, a coffee keeps the updates coming.
+
+[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/fadyk)
